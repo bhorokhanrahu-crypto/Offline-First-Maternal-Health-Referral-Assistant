@@ -55,6 +55,44 @@ function displayNote(note) {
     ? t('routine_note') : t('reported_today');
 }
 
+function visitCsvHeaders() {
+  return [t('visit'), t('patient_id'), t('age'), t('weeks'), t('visit_date'), t('chw_id'),
+    t('recorded'), t('warnings'), t('clinical_notes'), t('professional_review'), t('version')];
+}
+function visitCsvRow(visit, patient) {
+  return [
+    visit.id,
+    patient ? patient.displayId : '',
+    patient ? patient.age : '',
+    patient && patient.weeks != null ? patient.weeks : '',
+    visit.visitDate,
+    visit.chwId,
+    visit.symptoms.length ? visit.symptoms.map(symptomLabel).join('; ') : t('no_warning'),
+    visit.flags.map(function (flag) { return t(flag.level) + ': ' + t('reason_' + flag.ruleId); }).join('; '),
+    visit.notes ? displayNote(visit.notes) : '',
+    t(visit.review),
+    visit.guidanceVersion
+  ];
+}
+function csvCell(value) {
+  let text = String(value == null ? '' : value);
+  if (/^[\u0000-\u0020]*[=+\-@]/.test(text)) text = "'" + text;
+  return '"' + text.replace(/"/g, '""') + '"';
+}
+function downloadCsv(headers, rows, filename) {
+  const csv = [headers].concat(rows).map(function (row) {
+    return row.map(csvCell).join(',');
+  }).join('\r\n');
+  const url = URL.createObjectURL(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+}
+
 // ---------- navigation ----------
 let view = { name: 'dashboard', id: null };
 let appMode = localStorage.getItem('matref-mode') === 'online' ? 'online' : 'offline';
@@ -173,7 +211,8 @@ function renderDashboard(m) {
   if (visits.length) html += '<div class="visit-tools"><label>' + esc(t('visits_search')) + '<input id="visit-search" type="search" placeholder="' + esc(t('visits_search')) + '"></label>' +
     '<label>' + esc(t('visit_filter')) + '<select id="visit-filter"><option value="all">' + esc(t('all_visits')) + '</option><option value="urgent">' + esc(t('urgent_only')) + '</option>' +
     '<option value="pending">' + esc(t('needs_review')) + '</option><option value="reviewed">' + esc(t('reviewed_only')) + '</option></select></label></div><div id="visit-list"></div>';
-  html += '<div class="actions no-print"><button id="demo">' + esc(t('load_samples')) + '</button><button id="export" class="quiet-button">' + esc(t('export_backup')) + '</button><button id="clear" class="quiet-button">' + esc(t('clear_demo')) + '</button></div>';
+  html += '<div class="actions no-print"><button id="demo">' + esc(t('load_samples')) + '</button><button id="export-csv" class="quiet-button"' +
+    (visits.length ? '' : ' disabled') + '>' + esc(t('export_csv')) + '</button><button id="clear" class="quiet-button">' + esc(t('clear_demo')) + '</button></div>';
   m.innerHTML = html;
   $('#hero-add').onclick = function () { go('register'); };
   $('#hero-facilities').onclick = function () { go('facilities'); };
@@ -223,27 +262,15 @@ function renderDashboard(m) {
     });
     store.set('patients', ps); store.set('visits', vs); render();
   };
-  $('#export').onclick = function () {
-    if (!confirm(t('export_confirm'))) return;
+  $('#export-csv').onclick = function () {
+    if (!visits.length || !confirm(t('export_confirm'))) return;
     try {
-      const backup = {
-        format: 'maternal-referral-assistant',
-        version: 1,
-        exportedAt: new Date().toISOString(),
-        patients: store.get('patients'),
-        visits: store.get('visits')
-      };
-      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'maternal-referral-backup-' + new Date().toISOString().slice(0, 10) + '.json';
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      const rows = visits.map(function (visit) {
+        return visitCsvRow(visit, patients.find(function (patient) { return patient.id === visit.patientId; }));
+      });
+      downloadCsv(visitCsvHeaders(), rows, 'maternal-referral-visits-' + new Date().toISOString().slice(0, 10) + '.csv');
     } catch (error) {
-      console.error('Could not export local visit data:', error);
+      console.error('Could not export local visit data as CSV:', error);
       alert(t('export_failed'));
     }
   };
@@ -350,7 +377,9 @@ function renderSummary(m) {
   html += '<p><b>' + esc(t('missing_info')) + ':</b> ' + (missing.length ? missing.map(esc).join(', ') : esc(t('none'))) + '</p>' +
     '<p><b>' + esc(t('professional_review')) + ':</b> ' + esc(t(v.review)) + ' · <b>' + esc(t('sync')) + ':</b> ' + (v.synced ? esc(t('reviewed')) : esc(t('pending'))) + '</p>' +
     '<div class="actions no-print"><button id="rev">' + esc(t(v.review === 'pending' ? 'mark_reviewed' : 'mark_pending')) + '</button>' +
-    '<button id="fac">' + esc(t('find_facility')) + '</button><button class="primary" id="prn">' + esc(t('print_summary')) + '</button></div>';
+    '<button id="fac">' + esc(t('find_facility')) + '</button><button class="quiet-button" id="export-visit-csv">' + esc(t('export_visit_csv')) +
+    '</button><button class="primary" id="prn">' + esc(t('print_summary')) + '</button></div>' +
+    '<p class="export-note no-print">' + esc(t('pdf_export_note')) + '</p>';
   m.innerHTML = html;
 
   $('#rev').onclick = function () {
@@ -358,7 +387,19 @@ function renderSummary(m) {
     store.set('visits', visits); render();
   };
   $('#fac').onclick = function () { go('facilities'); };
-  $('#prn').onclick = function () { window.print(); };
+  $('#export-visit-csv').onclick = function () {
+    if (!confirm(t('export_confirm'))) return;
+    try {
+      downloadCsv(visitCsvHeaders(), [visitCsvRow(v, p)],
+        'maternal-referral-visit-' + v.visitDate + '-' + v.id + '.csv');
+    } catch (error) {
+      console.error('Could not export visit as CSV:', error);
+      alert(t('export_failed'));
+    }
+  };
+  $('#prn').onclick = function () {
+    if (confirm(t('export_confirm'))) window.print();
+  };
 }
 
 // ---------- facilities ----------
@@ -405,13 +446,15 @@ function renderChat(m) {
     '<p class="chat-subtitle">' + esc(t('chat_subtitle')) + '</p>' +
     '<p class="chat-disclosure">' + esc(t('chat_disclosure')) + '</p>' +
     '<p class="chat-safety">' + esc(t('chat_safety')) + '</p>' +
+    '<p class="chat-scope">' + esc(t('chat_scope')) + '</p>' +
     '<p class="chat-status" role="status" aria-live="polite">' + esc(t(chatSending ? 'chat_sending' : chatStatusKey())) + '</p>' +
     (chatStatus === 'ready' && chatModel ? '<p class="chat-model">' + esc(t('chat_model_label').replace('{model}', chatModel)) + '</p>' : '') +
     (chatError ? '<p class="chat-error" role="alert">' + esc(t(chatError)) +
       (chatRetryQuestion && ready ? ' <button class="quiet-button" id="chat-retry" type="button">' + esc(t('chat_retry')) + '</button>' : '') + '</p>' : '') +
     '<div class="chat-history" aria-live="polite">' + messages + '</div>' +
     '<div class="chat-prompts"><p>' + esc(t('chat_suggestions')) + '</p>' +
-    ['prompt_handover', 'prompt_respectful', 'prompt_routine'].map(function (key) {
+    ['prompt_handover', 'prompt_respectful', 'prompt_routine', 'prompt_delayed_care',
+      'prompt_newborn_emergency', 'prompt_breastfeeding'].map(function (key) {
       return '<button class="prompt-chip" type="button" data-prompt="' + esc(t(key)) + '"' + (ready ? '' : ' disabled') + '>' + esc(t(key)) + '</button>';
     }).join('') + '</div>' +
     '<form id="chat-form"><label for="chat-question">' + esc(t('chat_input')) +

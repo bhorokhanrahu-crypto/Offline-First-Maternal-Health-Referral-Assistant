@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -24,6 +25,67 @@ logger = logging.getLogger("maternal-referral")
 
 with (ROOT / "model" / "assistant_instructions.txt").open(encoding="utf-8") as prompt_file:
     ASSISTANT_INSTRUCTIONS = prompt_file.read().strip()
+OUT_OF_SCOPE_REPLIES = {
+    "en": "I can only help with pregnancy, mother and child health, newborn care, or basic first aid. If someone needs urgent help, contact a health professional or go to the nearest emergency-capable facility now.",
+    "ur": "میں صرف حمل، ماں اور بچے کی صحت، نومولود کی دیکھ بھال یا ابتدائی طبی امداد کے بارے میں مدد کر سکتا ہوں۔ فوری مدد درکار ہو تو ابھی صحت کے ماہر سے رابطہ کریں یا قریبی ہنگامی مرکز جائیں۔",
+    "sd": "مان رڳو حمل، ماءُ ۽ ٻار جي صحت، نون ڄاول ٻار جي سنڀال يا پهرين امداد بابت مدد ڪري سگهان ٿو. تڪڙي مدد گهرجي ته هاڻي ئي صحت جي ماهر سان رابطو ڪريو يا ويجهي ايمرجنسي مرڪز وڃو.",
+}
+SUPPORTED_CHAT_TERMS = (
+    "pregnancy", "pregnant", "pregnancies", "maternal", "mother", "mothers", "maternity", "postpartum",
+    "post-partum", "antenatal", "prenatal", "labour", "labor", "delivery",
+    "breastfeed", "breastfeeding", "newborn", "new-born", "infant", "baby",
+    "babies", "child", "children", "toddler", "midwife", "miscarriage",
+    "first aid", "bleeding", "bleed", "burn", "choking", "seizure", "faint",
+    "fracture", "poison", "wound", "injury", "injured", "scald", "cpr",
+    "fever", "breathing", "shortness of breath", "headache", "pain",
+    "vomiting", "diarrhea", "diarrhoea", "allergic reaction", "broken bone",
+)
+SUPPORTED_NON_LATIN_TERMS = (
+    "حمل", "حاملہ", "ماں", "ماؤں", "والدہ", "زچگی", "ولادت", "بچہ",
+    "بچوں", "نومولود", "نوزائیدہ", "دودھ پلانا", "ابتدائی طبی امداد",
+    "ابتدائی امداد", "حامله", "ماءُ",
+    "ٻار", "ٻارڙو", "نون ڄاول", "نئون ڄاول", "کير پيارڻ", "پهرين امداد",
+    "پهرين طبي امداد", "بخار", "ساھ", "ساهه", "رت وهڻ", "ساڙ", "زخم",
+    "چوٽ", "بيهوشي", "دورو", "زهر",
+)
+CARE_PROVIDER_TERMS = (
+    "doctor", "clinic", "hospital", "health professional",
+    "ڈاکٹر", "ہسپتال", "ڊاڪٽر", "ڊاکٽر", "اسپتال",
+    "صحت جي ماهر", "صحت کے ماہر",
+)
+CARE_DELAY_TERMS = (
+    "late", "later", "delay", "delayed", "missed", "waiting", "waited",
+    "postpone", "put off", "دیر", "تاخیر", "انتظار", "دير", "بعد میں",
+    "پوءِ",
+)
+DOCTOR_ABBREVIATION_PATTERN = re.compile(r"\bdr\.?\b", re.IGNORECASE)
+OUT_OF_SCOPE_TERMS = (
+    "tell me a joke", "write code", "write a program", "build a website",
+    "javascript", "python programming", "politics", "stock market", "weather",
+    "football", "cryptocurrency", "solve this math", "homework",
+)
+SUPPORTED_CHAT_PATTERN = re.compile(
+    r"\b(?:" + "|".join(re.escape(term) for term in SUPPORTED_CHAT_TERMS) + r")\b"
+)
+
+
+def is_supported_chat_question(question: str) -> bool:
+    normalized = question.casefold()
+    if any(term in normalized for term in OUT_OF_SCOPE_TERMS):
+        return False
+    has_care_provider = (
+        any(term in normalized for term in CARE_PROVIDER_TERMS)
+        or DOCTOR_ABBREVIATION_PATTERN.search(normalized) is not None
+    )
+    delayed_care_context = (
+        has_care_provider
+        and any(term in normalized for term in CARE_DELAY_TERMS)
+    )
+    return bool(
+        SUPPORTED_CHAT_PATTERN.search(normalized)
+        or any(term in normalized for term in SUPPORTED_NON_LATIN_TERMS)
+        or delayed_care_context
+    )
 
 
 @asynccontextmanager
@@ -102,6 +164,10 @@ async def chat_status(request: Request):
 
 @app.post("/api/chat")
 async def chat(body: ChatRequest, request: Request):
+    question = body.messages[-1].content
+    if not is_supported_chat_question(question):
+        return {"reply": OUT_OF_SCOPE_REPLIES[body.language], "code": "out_of_scope"}
+
     client = request.app.state.groq_client
     if client is None:
         raise HTTPException(status_code=503, detail="Online chat is not configured on this server.")

@@ -122,7 +122,7 @@ button.quiet-button { background: rgba(255,255,255,.45); }
 .hero-secondary { background: rgba(255,255,255,.78); }
 .hero-image { position: relative; min-height: 300px; margin: 0; overflow: hidden; background: linear-gradient(145deg, #b4d8c8, #e2f0df); }
 .hero-image::after { position: absolute; inset: 45% 0 0; background: linear-gradient(transparent, rgba(13,48,38,.47)); content: ""; pointer-events: none; }
-.hero-image img { display: block; width: 100%; height: 100%; min-height: 300px; object-fit: cover; object-position: center 39%; }
+.hero-image img { display: block; width: 100%; height: 100%; min-height: 300px; object-fit: cover; object-position: center 39%; animation: photo-arrive .85s ease-out both; }
 .hero-image figcaption { position: absolute; z-index: 1; inset-inline-end: 13px; bottom: 11px; color: #fff; font-size: .72rem; text-shadow: 0 1px 5px rgba(0,0,0,.6); }
 .workflow-section { margin: 22px 0 24px; animation: welcome-in .6s .08s ease-out both; }
 .workflow-section > h2 { margin: 0 2px 10px; font-size: 1.12rem; }
@@ -136,6 +136,8 @@ button.quiet-button { background: rgba(255,255,255,.45); }
 .gallery-grid figure { min-width: 0; margin: 0; overflow: hidden; border: 1px solid rgba(255,255,255,.9); border-radius: 21px; background: rgba(255,255,255,.72); box-shadow: 0 10px 25px rgba(37,74,58,.075); animation: welcome-in .55s ease-out both; }
 .gallery-grid figure:nth-child(2) { animation-delay: .1s; }
 .gallery-grid img { display: block; width: 100%; height: 220px; object-fit: cover; object-position: center 38%; }
+.gallery-grid img { transition: transform .45s cubic-bezier(.2,.7,.25,1); }
+.gallery-grid figure:hover img { transform: scale(1.045); }
 .gallery-grid figcaption { padding: 10px 13px 12px; color: var(--muted); font-size: .79rem; line-height: 1.5; }
 .chat-model { margin-top: -10px; color: var(--muted); font-size: .8rem; }
 .stats .stat-card { display: flex; min-height: 102px; flex-direction: column; justify-content: center; gap: 4px; margin: 0; }
@@ -213,12 +215,15 @@ a { color: #07695d; font-weight: 650; }
   line-height: 1.6;
 }
 .chat-safety { border-color: rgba(143, 108, 26, .17); color: #624d18; background: rgba(255,247,211,.7); }
+.chat-scope { padding: 12px 15px; border: 1px solid rgba(8,127,112,.15); border-radius: 15px; color: var(--teal-dark); background: rgba(225,245,236,.68); font-size: .88rem; line-height: 1.6; }
 .chat-status { color: var(--teal-dark); font-weight: 700; }
 .chat-error { color: var(--red); }
 .chat-history { display: grid; gap: 10px; margin: 16px 0; }
 .chat-prompts { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
 .chat-prompts > p { flex-basis: 100%; margin: 0; color: var(--muted); font-size: .86rem; }
 button.prompt-chip { min-height: 42px; padding: 8px 12px; border-radius: 13px; font-size: .85rem; font-weight: 550; text-align: start; }
+.chat-prompts .prompt-chip { flex: 1 1 220px; }
+.export-note { color: var(--muted); font-size: .82rem; line-height: 1.5; }
 .chat-message { max-width: 92%; padding: 13px 16px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.8); overflow-wrap: anywhere; }
 .chat-message p { margin: 5px 0 0; line-height: 1.6; white-space: normal; }
 .chat-message.user { justify-self: end; border-color: rgba(8,127,112,.16); background: rgba(224,245,235,.9); }
@@ -259,13 +264,16 @@ html[dir=rtl] input[type=date], html[dir=rtl] input[type=number], html[dir=rtl] 
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
-  .welcome-hero, .workflow-section, .gallery-grid figure { animation: none !important; }
+  .welcome-hero, .workflow-section, .gallery-grid figure, .hero-image img { animation: none !important; }
+  .gallery-grid img { transform: none !important; }
 }
 @keyframes welcome-in { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes photo-arrive { from { opacity: .72; transform: scale(1.035); } to { opacity: 1; transform: scale(1); } }
 @media print {
   .no-print { display: none !important; }
   body { color: #111; background: #fff; }
   .app { width: 100%; padding: 0; }
-  .card { break-inside: avoid; border: 1px solid #bbb; box-shadow: none; background: #fff; }
+  .card { break-inside: avoid; border: 1px solid #bbb; box-shadow: none; background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; }
   .alert { color: #111; background: #fff; border: 2px solid #900; box-shadow: none; }
+  h2, h3 { break-after: avoid; }
 }

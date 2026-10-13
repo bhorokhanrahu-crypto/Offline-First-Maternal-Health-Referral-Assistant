@@ -14,14 +14,14 @@ A lightweight web app that helps a community health worker (CHW) record a matern
 
 ## Features
 - **Dashboard:** a welcoming mother-and-baby hero and photo gallery, clear three-step referral path, patient/review counts, and Online/Offline indicator.
-- **Advanced offline workflow:** unfinished visit forms autosave on the device; search/filter saved visits; export a JSON backup locally. Offline guidance makes no model requests.
+- **Advanced offline workflow:** unfinished visit forms autosave on the device; search/filter saved visits; export individual visit records or all visits as CSV. Offline guidance makes no model requests.
 - **Sample data button:** loads three fictional visits so the dashboard can be demoed quickly.
 - **New visit form:** patient ID, age, weeks pregnant, visit date, CHW ID, symptoms, notes. Saved locally on the device.
 - **Rule-based warnings:** deterministic rules, each with a reason, an action and a guidance version. Urgent flags show escalation instructions immediately.
-- **Referral summary:** recorded details, triggered warnings, missing information, professional review status, print / save as PDF.
+- **Referral summary:** recorded details, triggered warnings, missing information, professional review status, print / save one visit as PDF or download it as CSV.
 - **Facility directory:** search and emergency-capable filter, tap-to-call.
 - **Two explicit modes:** **Offline guidance · No AI** (default) uses only local rules; **Online AI** reveals the optional Groq chat. Changing modes never changes how local referral warnings are calculated.
-- **Optional online AI chat:** asks Groq for general maternal-health information only while Online AI mode is selected and internet is available. Translated starter questions, retry, and a request timeout are provided. The current chat conversation is sent when a question is submitted; local visit records are never sent automatically.
+- **Optional online AI chat:** asks Groq about pregnancy, mother and child health, newborn care, or basic first aid only. A server-side topic check refuses unrelated latest questions before sending anything to Groq. Translated topic starters, retry, and a request timeout are provided. The current chat conversation is sent when a question is submitted; local visit records are never sent automatically.
 - **Offline behavior:** local visit recording, rule-based warnings and the facility directory remain available without internet. Chat is disabled offline and never replaces local warning guidance.
 - **English, Urdu and Sindhi:** switch languages on the device; Urdu and Sindhi use a right-to-left layout.
 - **Rural-friendly interface:** large touch controls, readable type, and a calm glass-inspired visual design.
@@ -89,11 +89,11 @@ Deploy `main.py` to a host that supports Python/FastAPI and HTTPS, with `GROQ_AP
 - Rules in `rules.js` are **unverified placeholders** (`DEMO-UNVERIFIED-0`). They must be checked against WHO / Pakistan-Sindh health authority guidance before any real use.
 - Sindhi and Urdu text is bundled in the app, but health terminology and translations must be reviewed by native speakers and qualified local clinicians before real use.
 - `localStorage` is **not encrypted**. Real patient data would need encryption, access control, consent and a retention policy.
-- Visit backups are unencrypted JSON downloads. Store them only on trusted devices and handle them as sensitive information.
+- CSV exports and browser-generated PDFs are unencrypted and contain sensitive visit information. Store them only on trusted devices. To create a PDF, choose **Save as PDF** in the browser print dialog.
 - Dashboard photos are locally cached decorative Unsplash images (not medical guidance): [Kelly Sikkema](https://unsplash.com/photos/mother-carrying-baby-Z4GKcFAGck4), [Jonathan Borba](https://unsplash.com/photos/smiling-woman-carrying-baby-RWgE9_lKj_Y), and [Raul Angel](https://unsplash.com/photos/woman-carrying-smiling-baby-mcKqoZh0DkI), used under the [Unsplash License](https://unsplash.com/license).
 - Sample facilities are fictional.
 - Visit records are not synced to a backend: the `synced` flag is a placeholder. The API only proxies explicitly submitted chat messages and applies a basic per-IP request limit; deploy behind authentication and usage quotas before public use.
-- AI replies can be inaccurate and are not validated clinical guidance. Do not share names, contact details or identifying patient information in chat.
+- AI replies can be inaccurate and are not validated clinical guidance. If care has been delayed, contact a qualified clinician as soon as possible; severe or worsening symptoms need emergency care now. Do not share names, contact details or identifying patient information in chat.
 
 ## Challenges we faced
 - Connectivity: the app had to work with zero internet, so all data lives on the device and the app shell is cached by a service worker.
