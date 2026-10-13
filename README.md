@@ -8,7 +8,7 @@ A lightweight web app that helps a community health worker (CHW) record a matern
 
 ## OpenHack'26 submission details
 - **Team name:** _[The Power Pair]_
-- **Team members and contributions:** _[Name: what they built]_, _[Name: what they built]_
+- **Team members and contributions:** _[Name: Bhoro Khan (Team Leader): Project planning, backend and database edit,and final integration, _[Name: Somia Jamali (Member): frontend, testing, documentation]_
 - **Problem statement:** HT-02, Offline-First Maternal Health Referral Assistant
 - **Solution in one line:** a CHW records a visit offline, rules flag danger signs with reasons, and a printable referral summary plus a facility directory support the referral.
 
