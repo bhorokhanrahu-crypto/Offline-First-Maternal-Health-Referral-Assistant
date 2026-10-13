@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e9f4ee">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+  <title>Maternal Referral Assistant</title>
+</head>
+<body>
+  <div class="app">
+    <header class="no-print">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">+</span>
+        <div><h1 data-i18n="app_title">Maternal Referral Assistant</h1><p id="subtitle" data-i18n="app_subtitle">Care close to home</p></div>
+      </div>
+      <div class="header-tools">
+        <label class="language-picker"><span data-i18n="language">Language</span>
+          <select id="language" aria-label="Language">
+            <option value="en">English</option>
+            <option value="ur">اردو</option>
+            <option value="sd">سنڌي</option>
+          </select>
+        </label>
+        <span id="net" class="pill ok">Online</span>
+      </div>
+    </header>
+    <nav class="no-print">
+      <button data-view="dashboard" data-i18n="dashboard">Dashboard</button>
+      <button data-view="register" data-i18n="new_visit">New visit</button>
+      <button data-view="facilities" data-i18n="facilities">Facilities</button>
+      <button data-view="chat" data-i18n="chat_nav">AI chat</button>
+    </nav>
+    <section class="mode-chooser no-print">
+      <p id="mode-label" data-i18n="mode_label">Choose how to use the app</p>
+      <div id="mode-switch" role="group" aria-labelledby="mode-label">
+        <button type="button" data-mode="offline" data-i18n="offline_mode">Offline guidance · No AI</button>
+        <button type="button" data-mode="online" data-i18n="online_mode">Online AI</button>
+      </div>
+      <p id="mode-description" aria-live="polite"></p>
+    </section>
+    <p class="demo no-print" data-i18n="demo_notice">DEMO · Fictional data only. Warning rules are not verified for clinical use.</p>
+    <main id="main"></main>
+  </div>
+  <script src="rules.js"></script>
+  <script src="facilities.js"></script>
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
