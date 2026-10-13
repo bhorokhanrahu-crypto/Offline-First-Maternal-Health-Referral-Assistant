@@ -7,7 +7,7 @@ A lightweight web app that helps a community health worker (CHW) record a matern
 > **Demo only.** Uses fictional data. The warning rules are placeholders and are **not clinical guidance** until verified (see "Limitations").
 
 ## OpenHack'26 submission details
-- **Team name:** _[fill in registered team name]_
+- **Team name:** _[The Power Pair]_
 - **Team members and contributions:** _[Name: what they built]_, _[Name: what they built]_
 - **Problem statement:** HT-02, Offline-First Maternal Health Referral Assistant
 - **Solution in one line:** a CHW records a visit offline, rules flag danger signs with reasons, and a printable referral summary plus a facility directory support the referral.
@@ -39,7 +39,7 @@ Open `index.html` in a browser, or use the VS Code "Live Server" extension.
 
 ## Deploy (GitHub Pages) and install on Android
 1. Repo **Settings > Pages**, set Source to **Deploy from a branch**, branch `main`, folder `/ (root)`, then Save.
-2. Open `https://<username>.github.io/<repo-name>/` in Chrome on the phone and let it load once.
+2. Open `https://github.com/bhorokhanrahu-crypto/Offline-First-Maternal-Health-Referral-Assistant/edit/main/README.md in Chrome on the phone and let it load once.
 3. Chrome menu > **Install app** / **Add to Home screen**. It now opens and works offline.
 
 ## Design decisions
