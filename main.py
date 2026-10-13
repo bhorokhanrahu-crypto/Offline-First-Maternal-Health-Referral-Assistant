@@ -15,7 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 ROOT = Path(__file__).resolve().parent
 SRC = ROOT / "src"
 load_dotenv(ROOT / ".env", override=False)
-MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
+MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 RATE_WINDOW_SECONDS = 10 * 60
 RATE_LIMIT = 20
 requests_by_address: dict[str, list[float]] = {}
@@ -94,7 +94,10 @@ def enforce_chat_rate_limit(address: str) -> None:
 
 @app.get("/api/chat/status")
 async def chat_status(request: Request):
-    return {"configured": request.app.state.groq_client is not None}
+    return {
+        "configured": request.app.state.groq_client is not None,
+        "model": MODEL,
+    }
 
 
 @app.post("/api/chat")
@@ -123,7 +126,18 @@ async def chat(body: ChatRequest, request: Request):
         raise HTTPException(status_code=502, detail="The online AI service could not be reached. Please try again.") from error
     except APIStatusError as error:
         logger.warning("Groq returned HTTP %s.", error.status_code)
-        raise HTTPException(status_code=502, detail="The online AI service returned an error. Please try again later.") from error
+        if error.status_code == 401:
+            code = "invalid_api_key"
+        elif error.status_code in (400, 404):
+            code = "model_unavailable"
+        elif error.status_code == 429:
+            code = "service_rate_limited"
+        else:
+            code = "upstream_error"
+        raise HTTPException(
+            status_code=502,
+            detail={"code": code},
+        ) from error
 
     reply = completion.choices[0].message.content if completion.choices else None
     if not isinstance(reply, str) or not reply.strip():

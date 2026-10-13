@@ -13,7 +13,7 @@ A lightweight web app that helps a community health worker (CHW) record a matern
 - **Solution in one line:** a CHW records a visit offline, rules flag danger signs with reasons, and a printable referral summary plus a facility directory support the referral.
 
 ## Features
-- **Dashboard:** a welcoming mother-and-baby hero, clear three-step referral path, patient/review counts, and Online/Offline indicator.
+- **Dashboard:** a welcoming mother-and-baby hero and photo gallery, clear three-step referral path, patient/review counts, and Online/Offline indicator.
 - **Advanced offline workflow:** unfinished visit forms autosave on the device; search/filter saved visits; export a JSON backup locally. Offline guidance makes no model requests.
 - **Sample data button:** loads three fictional visits so the dashboard can be demoed quickly.
 - **New visit form:** patient ID, age, weeks pregnant, visit date, CHW ID, symptoms, notes. Saved locally on the device.
@@ -75,6 +75,8 @@ notepad .env
 
 Install updated dependencies with `.\.venv\Scripts\python.exe -m pip install -r requirements.txt` if this is an existing setup. The server reads `.env` at startup; restart it after changing the key. `.env` is ignored by Git. Never paste keys into source code, browser files, screenshots, or chat. Optional `GROQ_MODEL`, `HOST` and `PORT` environment variables select the model and bind address. If no key is configured, Online AI mode explains that chat is unavailable; Offline guidance still works without calling the model.
 
+The default Groq model is `llama-3.3-70b-versatile` (production Llama 3.3 70B). The server status and chat page show the active model. If Groq rejects the key, model, or account quota, the chat displays a specific next step instead of a generic failure.
+
 ## Deploy (GitHub Pages) and install on Android
 Deploy `main.py` to a host that supports Python/FastAPI and HTTPS, with `GROQ_API_KEY` set as a server-side secret. GitHub Pages can host the static/offline app but cannot run this API; deploy the FastAPI app for the combined Online AI and Offline guidance modes. On Android, open the HTTPS app URL in Chrome and load it once while connected, then use **Install app** / **Add to Home screen**. It will keep local guidance available offline.
 
@@ -88,7 +90,7 @@ Deploy `main.py` to a host that supports Python/FastAPI and HTTPS, with `GROQ_AP
 - Sindhi and Urdu text is bundled in the app, but health terminology and translations must be reviewed by native speakers and qualified local clinicians before real use.
 - `localStorage` is **not encrypted**. Real patient data would need encryption, access control, consent and a retention policy.
 - Visit backups are unencrypted JSON downloads. Store them only on trusted devices and handle them as sensitive information.
-- The dashboard's mother-and-baby image is a locally cached Unsplash photo by [Kelly Sikkema](https://unsplash.com/photos/mother-carrying-baby-Z4GKcFAGck4), used under the [Unsplash License](https://unsplash.com/license). It is decorative, not medical guidance.
+- Dashboard photos are locally cached decorative Unsplash images (not medical guidance): [Kelly Sikkema](https://unsplash.com/photos/mother-carrying-baby-Z4GKcFAGck4), [Jonathan Borba](https://unsplash.com/photos/smiling-woman-carrying-baby-RWgE9_lKj_Y), and [Raul Angel](https://unsplash.com/photos/woman-carrying-smiling-baby-mcKqoZh0DkI), used under the [Unsplash License](https://unsplash.com/license).
 - Sample facilities are fictional.
 - Visit records are not synced to a backend: the `synced` flag is a placeholder. The API only proxies explicitly submitted chat messages and applies a basic per-IP request limit; deploy behind authentication and usage quotas before public use.
 - AI replies can be inaccurate and are not validated clinical guidance. Do not share names, contact details or identifying patient information in chat.

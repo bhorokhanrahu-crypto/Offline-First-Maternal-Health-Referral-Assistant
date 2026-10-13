@@ -63,6 +63,7 @@ let chatStatus = 'unknown';
 let chatSending = false;
 let chatError = false;
 let chatRetryQuestion = '';
+let chatModel = '';
 function go(name, id) { view = { name: name, id: id || null }; render(); window.scrollTo(0, 0); }
 
 function updateModeUI() {
@@ -160,6 +161,11 @@ function renderDashboard(m) {
     '<div class="workflow-grid"><article class="workflow-card"><span aria-hidden="true">01</span><h3>' + esc(t('workflow_record')) + '</h3></article>' +
     '<article class="workflow-card"><span aria-hidden="true">02</span><h3>' + esc(t('workflow_review')) + '</h3></article>' +
     '<article class="workflow-card"><span aria-hidden="true">03</span><h3>' + esc(t('workflow_refer')) + '</h3></article></div></section>' +
+    '<section class="care-gallery" aria-labelledby="gallery-title"><h2 id="gallery-title">' + esc(t('gallery_title')) + '</h2>' +
+    '<div class="gallery-grid"><figure><img src="mother-baby-2.jpg" alt="' + esc(t('gallery_alt_one')) + '" loading="lazy" decoding="async">' +
+    '<figcaption>' + esc(t('gallery_caption_one')) + ' · Jonathan Borba / Unsplash</figcaption></figure>' +
+    '<figure><img src="mother-baby-3.jpg" alt="' + esc(t('gallery_alt_two')) + '" loading="lazy" decoding="async">' +
+    '<figcaption>' + esc(t('gallery_caption_two')) + ' · Raul Angel / Unsplash</figcaption></figure></div></section>' +
     '<div class="stats">' + stats.map(function (s) {
     return '<div class="card stat-card"><b>' + s[1] + '</b><span>' + esc(t(s[0])) + '</span></div>';
   }).join('') + '</div><h2>' + esc(t('visits')) + '</h2>';
@@ -400,6 +406,7 @@ function renderChat(m) {
     '<p class="chat-disclosure">' + esc(t('chat_disclosure')) + '</p>' +
     '<p class="chat-safety">' + esc(t('chat_safety')) + '</p>' +
     '<p class="chat-status" role="status" aria-live="polite">' + esc(t(chatSending ? 'chat_sending' : chatStatusKey())) + '</p>' +
+    (chatStatus === 'ready' && chatModel ? '<p class="chat-model">' + esc(t('chat_model_label').replace('{model}', chatModel)) + '</p>' : '') +
     (chatError ? '<p class="chat-error" role="alert">' + esc(t(chatError)) +
       (chatRetryQuestion && ready ? ' <button class="quiet-button" id="chat-retry" type="button">' + esc(t('chat_retry')) + '</button>' : '') + '</p>' : '') +
     '<div class="chat-history" aria-live="polite">' + messages + '</div>' +
@@ -448,13 +455,23 @@ function sendChat(question, retrying) {
     signal: controller.signal
   }).then(function (response) {
     return response.json().then(function (result) {
-      if (!response.ok) throw new Error(result.detail || result.error || 'Chat request failed');
+      if (!response.ok) {
+        const detail = result.detail;
+        const error = new Error('Chat request failed');
+        error.code = (detail && typeof detail === 'object' && detail.code) || result.code || '';
+        throw error;
+      }
       if (typeof result.reply !== 'string' || !result.reply.trim()) throw new Error('Chat response was empty');
       chatMessages.push({ role: 'assistant', content: result.reply });
       chatMessages = chatMessages.slice(-12);
     });
   }).catch(function (error) {
-    chatError = error.name === 'AbortError' ? 'chat_timeout' : 'chat_unavailable';
+    const errorMessages = {
+      invalid_api_key: 'chat_invalid_key',
+      model_unavailable: 'chat_model_unavailable',
+      service_rate_limited: 'chat_rate_limited'
+    };
+    chatError = error.name === 'AbortError' ? 'chat_timeout' : (errorMessages[error.code] || 'chat_unavailable');
     chatRetryQuestion = question;
     console.error('Online chat request failed:', error.message);
   }).then(function () {
@@ -474,6 +491,7 @@ function checkChatStatus() {
       return response.json();
     }).then(function (status) {
       chatStatus = status.configured ? 'ready' : 'unconfigured';
+      chatModel = typeof status.model === 'string' ? status.model : '';
     }).catch(function (error) {
       chatStatus = navigator.onLine ? 'unavailable' : 'offline';
       console.error('Online chat status check failed:', error.message);
