@@ -1,4 +1,4 @@
-const CACHE = 'matref-v10';
+const CACHE = 'matref-v13';
 const FILES = ['./', './index.html', './style.css', './app.js', './i18n.js', './rules.js', './facilities.js', './manifest.json', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) {

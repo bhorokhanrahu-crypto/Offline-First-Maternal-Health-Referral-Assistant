@@ -105,6 +105,10 @@ button.quiet-button { background: rgba(255,255,255,.45); }
 .stats .stat-card { display: flex; min-height: 102px; flex-direction: column; justify-content: center; gap: 4px; margin: 0; }
 .stats .stat-card b { color: var(--teal-dark); font-size: 1.9rem; line-height: 1.1; }
 .stats .stat-card span { color: var(--muted); font-size: .92rem; line-height: 1.35; }
+.visit-tools { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(150px, 1fr); gap: 10px; margin: 12px 0; }
+.visit-tools label { margin: 0; color: var(--muted); font-size: .86rem; }
+.visit-tools input, .visit-tools select { min-height: 48px; margin-top: 5px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px; color: var(--ink); background: rgba(255,255,255,.88); font-size: .96rem; }
+.empty-filter { padding: 8px 4px; color: var(--muted); }
 h2 { margin: 25px 2px 12px; color: var(--ink); font-size: 1.35rem; }
 h3 { margin: 23px 2px 10px; font-size: 1.12rem; }
 p { line-height: 1.65; }
@@ -137,6 +141,7 @@ p { line-height: 1.65; }
 .empty-state p { margin-top: 0; color: var(--muted); }
 #f { padding: 8px 20px 20px; }
 #f h2 { margin-top: 16px; }
+.draft-status { min-height: 1.5em; margin: 0 2px; color: var(--muted); font-size: .86rem; }
 label { display: block; margin: 15px 0; font-weight: 650; line-height: 1.5; }
 label.check { display: flex; align-items: center; gap: 12px; min-height: 48px; margin: 3px 0; padding: 8px 10px; border-radius: 13px; font-weight: 500; }
 label.check:has(input:checked) { background: rgba(8,127,112,.08); }
@@ -175,6 +180,9 @@ a { color: #07695d; font-weight: 650; }
 .chat-status { color: var(--teal-dark); font-weight: 700; }
 .chat-error { color: var(--red); }
 .chat-history { display: grid; gap: 10px; margin: 16px 0; }
+.chat-prompts { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.chat-prompts > p { flex-basis: 100%; margin: 0; color: var(--muted); font-size: .86rem; }
+button.prompt-chip { min-height: 42px; padding: 8px 12px; border-radius: 13px; font-size: .85rem; font-weight: 550; text-align: start; }
 .chat-message { max-width: 92%; padding: 13px 16px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.8); overflow-wrap: anywhere; }
 .chat-message p { margin: 5px 0 0; line-height: 1.6; white-space: normal; }
 .chat-message.user { justify-self: end; border-color: rgba(8,127,112,.16); background: rgba(224,245,235,.9); }
@@ -198,6 +206,7 @@ html[dir=rtl] input[type=date], html[dir=rtl] input[type=number], html[dir=rtl] 
   nav button { min-height: 50px; padding: 8px 4px; font-size: .91rem; }
   .row { align-items: flex-start; flex-direction: column; }
   .row > span:last-child { justify-content: flex-start; }
+  .visit-tools { grid-template-columns: 1fr; gap: 2px; }
   .card { padding: 15px; }
   .chat-message { max-width: 100%; }
   #mode-switch button { min-height: 54px; padding: 8px 5px; font-size: .8rem; }

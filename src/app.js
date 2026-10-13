@@ -10,6 +10,39 @@ const store = {
   get: function (k) { try { return JSON.parse(localStorage.getItem(k)) || []; } catch (e) { return []; } },
   set: function (k, v) { localStorage.setItem(k, JSON.stringify(v)); }
 };
+const VISIT_DRAFT_KEY = 'matref-visit-draft-v1';
+function readVisitDraft() {
+  try {
+    const draft = JSON.parse(localStorage.getItem(VISIT_DRAFT_KEY) || 'null');
+    return draft && typeof draft === 'object' && !Array.isArray(draft) ? draft : null;
+  } catch (error) {
+    console.error('Could not read saved visit draft:', error);
+    return null;
+  }
+}
+function collectVisitDraft(form) {
+  return {
+    displayId: form.elements.displayId.value,
+    age: form.elements.age.value,
+    weeks: form.elements.weeks.value,
+    visitDate: form.elements.visitDate.value,
+    chwId: form.elements.chwId.value,
+    symptoms: Array.from(form.querySelectorAll('input[name=sym]:checked')).map(function (field) { return field.value; }),
+    notes: form.elements.notes.value
+  };
+}
+function saveVisitDraft(form) {
+  const draft = collectVisitDraft(form);
+  const hasContent = draft.displayId.trim() || draft.age || draft.weeks || draft.chwId.trim() || draft.notes.trim() || draft.symptoms.length;
+  try {
+    if (hasContent) localStorage.setItem(VISIT_DRAFT_KEY, JSON.stringify(draft));
+    else localStorage.removeItem(VISIT_DRAFT_KEY);
+    $('#draft-status').textContent = t(hasContent ? 'draft_saved' : 'draft_empty');
+  } catch (error) {
+    console.error('Could not save visit draft:', error);
+    $('#draft-status').textContent = t('draft_save_failed');
+  }
+}
 function symptomLabel(id) {
   const s = SYMPTOMS.find(function (x) { return x.id === id; });
   return s ? t('symptom_' + id) : id;
@@ -29,6 +62,7 @@ let chatMessages = [];
 let chatStatus = 'unknown';
 let chatSending = false;
 let chatError = false;
+let chatRetryQuestion = '';
 function go(name, id) { view = { name: name, id: id || null }; render(); window.scrollTo(0, 0); }
 
 function updateModeUI() {
@@ -49,6 +83,7 @@ function setMode(mode) {
   localStorage.setItem('matref-mode', appMode);
   chatMessages = [];
   chatError = false;
+  chatRetryQuestion = '';
   chatStatus = appMode === 'online' && navigator.onLine ? 'unknown' : 'offline';
   if (appMode === 'offline' && view.name === 'chat') view = { name: 'dashboard', id: null };
   updateModeUI();
@@ -118,19 +153,40 @@ function renderDashboard(m) {
     return '<div class="card stat-card"><b>' + s[1] + '</b><span>' + esc(t(s[0])) + '</span></div>';
   }).join('') + '</div><h2>' + esc(t('visits')) + '</h2>';
   if (!visits.length) html += '<div class="empty-state"><p>' + esc(t('no_visits')) + '</p><button class="primary" id="empty-add">' + esc(t('add_visit')) + '</button></div>';
-  visits.forEach(function (v) {
-    const p = patients.find(function (x) { return x.id === v.patientId; });
-    const isUrgent = v.flags.some(function (f) { return f.level === 'urgent'; });
-    html += '<div class="card row" data-open="' + v.id + '"><span><b>' + esc(p ? p.displayId : '?') + '</b> · ' + esc(v.visitDate) + '</span><span>' +
-      (isUrgent ? '<span class="pill off">' + esc(t('urgent')) + '</span> ' : (v.flags.length ? '<span class="pill warn">' + esc(t('review')) + '</span> ' : '')) +
-      '<span class="pill">' + esc(t(v.review)) + '</span></span></div>';
-  });
-  html += '<div class="actions no-print"><button id="demo">' + esc(t('load_samples')) + '</button><button id="clear" class="quiet-button">' + esc(t('clear_demo')) + '</button></div>';
+  if (visits.length) html += '<div class="visit-tools"><label>' + esc(t('visits_search')) + '<input id="visit-search" type="search" placeholder="' + esc(t('visits_search')) + '"></label>' +
+    '<label>' + esc(t('visit_filter')) + '<select id="visit-filter"><option value="all">' + esc(t('all_visits')) + '</option><option value="urgent">' + esc(t('urgent_only')) + '</option>' +
+    '<option value="pending">' + esc(t('needs_review')) + '</option><option value="reviewed">' + esc(t('reviewed_only')) + '</option></select></label></div><div id="visit-list"></div>';
+  html += '<div class="actions no-print"><button id="demo">' + esc(t('load_samples')) + '</button><button id="export" class="quiet-button">' + esc(t('export_backup')) + '</button><button id="clear" class="quiet-button">' + esc(t('clear_demo')) + '</button></div>';
   m.innerHTML = html;
   if ($('#empty-add')) $('#empty-add').onclick = function () { go('register'); };
-  m.querySelectorAll('[data-open]').forEach(function (el) {
-    el.onclick = function () { go('summary', Number(el.dataset.open)); };
-  });
+  function drawVisits() {
+    const query = $('#visit-search').value.trim().toLocaleLowerCase();
+    const filter = $('#visit-filter').value;
+    const matches = visits.filter(function (v) {
+      const patient = patients.find(function (x) { return x.id === v.patientId; });
+      const searchable = [patient ? patient.displayId : '', v.visitDate, v.chwId, v.notes,
+        v.symptoms.map(symptomLabel).join(' ')].join(' ').toLocaleLowerCase();
+      const urgentVisit = v.flags.some(function (flag) { return flag.level === 'urgent'; });
+      return searchable.indexOf(query) !== -1 &&
+        (filter === 'all' || (filter === 'urgent' && urgentVisit) ||
+          (filter === 'pending' && v.review === 'pending') || (filter === 'reviewed' && v.review === 'reviewed'));
+    });
+    $('#visit-list').innerHTML = matches.map(function (v) {
+    const p = patients.find(function (x) { return x.id === v.patientId; });
+    const isUrgent = v.flags.some(function (f) { return f.level === 'urgent'; });
+    return '<div class="card row" data-open="' + v.id + '"><span><b>' + esc(p ? p.displayId : '?') + '</b> · ' + esc(v.visitDate) + '</span><span>' +
+      (isUrgent ? '<span class="pill off">' + esc(t('urgent')) + '</span> ' : (v.flags.length ? '<span class="pill warn">' + esc(t('review')) + '</span> ' : '')) +
+      '<span class="pill">' + esc(t(v.review)) + '</span></span></div>';
+    }).join('') || '<p class="empty-filter">' + esc(t('no_matching_visits')) + '</p>';
+    $('#visit-list').querySelectorAll('[data-open]').forEach(function (el) {
+      el.onclick = function () { go('summary', Number(el.dataset.open)); };
+    });
+  }
+  if (visits.length) {
+    $('#visit-search').oninput = drawVisits;
+    $('#visit-filter').onchange = drawVisits;
+    drawVisits();
+  }
   $('#demo').onclick = function () {
     const timestamp = Date.now();
     const samples = [
@@ -148,6 +204,30 @@ function renderDashboard(m) {
     });
     store.set('patients', ps); store.set('visits', vs); render();
   };
+  $('#export').onclick = function () {
+    if (!confirm(t('export_confirm'))) return;
+    try {
+      const backup = {
+        format: 'maternal-referral-assistant',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        patients: store.get('patients'),
+        visits: store.get('visits')
+      };
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'maternal-referral-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    } catch (error) {
+      console.error('Could not export local visit data:', error);
+      alert(t('export_failed'));
+    }
+  };
   $('#clear').onclick = function () {
     if (confirm(t('delete_confirm'))) { store.set('patients', []); store.set('visits', []); render(); }
   };
@@ -156,22 +236,41 @@ function renderDashboard(m) {
 // ---------- new visit ----------
 function renderRegister(m) {
   const today = new Date().toISOString().slice(0, 10);
+  const draft = readVisitDraft();
   m.innerHTML =
     '<form id="f"><h2>' + esc(t('new_visit_title')) + '</h2>' +
-    '<label>' + esc(t('patient_id')) + '<input name="displayId" placeholder="' + esc(t('patient_id_hint')) + '"></label>' +
-    '<label>' + esc(t('age')) + '<input name="age" type="number" min="1" inputmode="numeric"></label>' +
-    '<label>' + esc(t('weeks')) + '<input name="weeks" type="number" min="0" inputmode="numeric"></label>' +
-    '<label>' + esc(t('visit_date')) + '<input name="visitDate" type="date" value="' + today + '"></label>' +
-    '<label>' + esc(t('chw_id')) + '<input name="chwId"></label>' +
+    '<p id="draft-status" class="draft-status" role="status">' + esc(t(draft ? 'draft_restored' : 'draft_empty')) + '</p>' +
+    '<label>' + esc(t('patient_id')) + '<input name="displayId" placeholder="' + esc(t('patient_id_hint')) + '" value="' + esc(draft && draft.displayId || '') + '"></label>' +
+    '<label>' + esc(t('age')) + '<input name="age" type="number" min="1" inputmode="numeric" value="' + esc(draft && draft.age || '') + '"></label>' +
+    '<label>' + esc(t('weeks')) + '<input name="weeks" type="number" min="0" inputmode="numeric" value="' + esc(draft && draft.weeks || '') + '"></label>' +
+    '<label>' + esc(t('visit_date')) + '<input name="visitDate" type="date" value="' + esc(draft && draft.visitDate || today) + '"></label>' +
+    '<label>' + esc(t('chw_id')) + '<input name="chwId" value="' + esc(draft && draft.chwId || '') + '"></label>' +
     '<fieldset><legend>' + esc(t('symptoms')) + '</legend>' +
     SYMPTOMS.map(function (s) {
-      return '<label class="check"><input type="checkbox" name="sym" value="' + s.id + '"> ' + esc(symptomLabel(s.id)) + '</label>';
+      return '<label class="check"><input type="checkbox" name="sym" value="' + s.id + '"' +
+        (draft && Array.isArray(draft.symptoms) && draft.symptoms.indexOf(s.id) !== -1 ? ' checked' : '') + '> ' + esc(symptomLabel(s.id)) + '</label>';
     }).join('') + '</fieldset>' +
-    '<label>' + esc(t('notes')) + '<textarea name="notes" rows="3"></textarea></label>' +
+    '<label>' + esc(t('notes')) + '<textarea name="notes" rows="3">' + esc(draft && draft.notes || '') + '</textarea></label>' +
     '<p id="err" class="err"></p>' +
-    '<button class="primary" type="submit">' + esc(t('save_evaluate')) + '</button></form>';
+    '<div class="actions"><button class="primary" type="submit">' + esc(t('save_evaluate')) + '</button>' +
+    '<button class="quiet-button" id="discard-draft" type="button">' + esc(t('discard_draft')) + '</button></div></form>';
 
-  $('#f').onsubmit = function (e) {
+  const form = $('#f');
+  form.addEventListener('input', function () { saveVisitDraft(form); });
+  form.addEventListener('change', function () { saveVisitDraft(form); });
+  $('#discard-draft').onclick = function () {
+    try {
+      localStorage.removeItem(VISIT_DRAFT_KEY);
+    } catch (error) {
+      console.error('Could not discard visit draft:', error);
+      $('#draft-status').textContent = t('draft_save_failed');
+      return;
+    }
+    form.reset();
+    form.elements.visitDate.value = today;
+    $('#draft-status').textContent = t('draft_empty');
+  };
+  form.onsubmit = function (e) {
     e.preventDefault();
     const f = e.target;
     const displayId = f.elements.displayId.value.trim();
@@ -195,6 +294,12 @@ function renderRegister(m) {
     visits.push(visit);
     store.set('patients', patients);
     store.set('visits', visits);
+    try {
+      localStorage.removeItem(VISIT_DRAFT_KEY);
+    } catch (error) {
+      console.error('Could not clear the saved visit draft after saving:', error);
+      alert(t('draft_clear_failed'));
+    }
     go('summary', visit.id);
   };
 }
@@ -282,8 +387,13 @@ function renderChat(m) {
     '<p class="chat-disclosure">' + esc(t('chat_disclosure')) + '</p>' +
     '<p class="chat-safety">' + esc(t('chat_safety')) + '</p>' +
     '<p class="chat-status" role="status" aria-live="polite">' + esc(t(chatSending ? 'chat_sending' : chatStatusKey())) + '</p>' +
-    (chatError ? '<p class="chat-error" role="alert">' + esc(t(chatError)) + '</p>' : '') +
+    (chatError ? '<p class="chat-error" role="alert">' + esc(t(chatError)) +
+      (chatRetryQuestion && ready ? ' <button class="quiet-button" id="chat-retry" type="button">' + esc(t('chat_retry')) + '</button>' : '') + '</p>' : '') +
     '<div class="chat-history" aria-live="polite">' + messages + '</div>' +
+    '<div class="chat-prompts"><p>' + esc(t('chat_suggestions')) + '</p>' +
+    ['prompt_handover', 'prompt_respectful', 'prompt_routine'].map(function (key) {
+      return '<button class="prompt-chip" type="button" data-prompt="' + esc(t(key)) + '"' + (ready ? '' : ' disabled') + '>' + esc(t(key)) + '</button>';
+    }).join('') + '</div>' +
     '<form id="chat-form"><label for="chat-question">' + esc(t('chat_input')) +
     '<textarea id="chat-question" name="question" rows="3" maxlength="1500" placeholder="' + esc(t('chat_placeholder')) +
     '" required' + (ready ? '' : ' disabled') + '></textarea></label>' +
@@ -292,36 +402,54 @@ function renderChat(m) {
     (chatMessages.length && !chatSending ? '' : ' disabled') + '>' + esc(t('chat_clear')) + '</button></div></form></section>';
 
   if (appMode === 'online' && chatStatus === 'unknown' && navigator.onLine) checkChatStatus();
-  $('#chat-clear').onclick = function () { chatMessages = []; chatError = false; renderChat(m); };
+  $('#chat-clear').onclick = function () { chatMessages = []; chatError = false; chatRetryQuestion = ''; renderChat(m); };
+  m.querySelectorAll('[data-prompt]').forEach(function (button) {
+    button.onclick = function () {
+      $('#chat-question').value = button.dataset.prompt;
+      $('#chat-question').focus();
+    };
+  });
+  if ($('#chat-retry')) $('#chat-retry').onclick = function () { sendChat(chatRetryQuestion, true); };
   $('#chat-form').onsubmit = function (event) {
     event.preventDefault();
     const question = $('#chat-question').value.trim();
     if (!question || !navigator.onLine || chatStatus !== 'ready' || chatSending) return;
-    chatMessages.push({ role: 'user', content: question });
-    chatMessages = chatMessages.slice(-12);
-    chatSending = true;
-    chatError = false;
-    renderChat(m);
-    fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ language: document.documentElement.lang, messages: chatMessages })
-    }).then(function (response) {
-      return response.json().then(function (result) {
-        if (!response.ok) throw new Error(result.error || 'Chat request failed');
-        if (typeof result.reply !== 'string' || !result.reply.trim()) throw new Error('Chat response was empty');
-        chatMessages.push({ role: 'assistant', content: result.reply });
-        chatMessages = chatMessages.slice(-12);
-      });
-    }).catch(function (error) {
-      chatError = 'chat_unavailable';
-      console.error('Online chat request failed:', error.message);
-    }).then(function () {
-      chatSending = false;
-      if (!navigator.onLine) chatStatus = 'offline';
-      if (view.name === 'chat') renderChat($('#main'));
-    });
+    sendChat(question, false);
   };
+}
+
+function sendChat(question, retrying) {
+  if (appMode !== 'online' || !navigator.onLine || chatStatus !== 'ready' || chatSending) return;
+  if (!retrying) chatMessages.push({ role: 'user', content: question });
+  chatMessages = chatMessages.slice(-12);
+  chatSending = true;
+  chatError = false;
+  chatRetryQuestion = '';
+  const controller = new AbortController();
+  const timeout = setTimeout(function () { controller.abort(); }, 30000);
+  renderChat($('#main'));
+  fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({ language: document.documentElement.lang, messages: chatMessages }),
+    signal: controller.signal
+  }).then(function (response) {
+    return response.json().then(function (result) {
+      if (!response.ok) throw new Error(result.detail || result.error || 'Chat request failed');
+      if (typeof result.reply !== 'string' || !result.reply.trim()) throw new Error('Chat response was empty');
+      chatMessages.push({ role: 'assistant', content: result.reply });
+      chatMessages = chatMessages.slice(-12);
+    });
+  }).catch(function (error) {
+    chatError = error.name === 'AbortError' ? 'chat_timeout' : 'chat_unavailable';
+    chatRetryQuestion = question;
+    console.error('Online chat request failed:', error.message);
+  }).then(function () {
+    clearTimeout(timeout);
+    chatSending = false;
+    if (!navigator.onLine) chatStatus = 'offline';
+    if (view.name === 'chat') renderChat($('#main'));
+  });
 }
 
 function checkChatStatus() {
