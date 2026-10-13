@@ -2,7 +2,7 @@
 
 A lightweight web app that helps a community health worker (CHW) record a maternal health visit, see rule-based warning flags with reasons, and produce a printable referral summary. It keeps working with **no internet** and can be installed on an Android phone as a PWA.
 
-**Live demo:** _add your GitHub Pages link here (see "Deploy" below)_
+**Live demo:**)_https://github.com/bhorokhanrahu-crypto/Offline-First-Maternal-Health-Referral-Assistant
 
 > **Demo only.** Uses fictional data. The warning rules are placeholders and are **not clinical guidance** until verified (see "Limitations").
 
