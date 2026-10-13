@@ -16,7 +16,7 @@ const SYMPTOMS = [
 
 const URGENT_ACTION = 'Refer to the nearest emergency-capable facility IMMEDIATELY. Do not wait for AI or sync.';
 const REVIEW_ACTION = 'Arrange review by a healthcare professional.';
-const REF = 'TODO: cite verified guidance (WHO / Sindh)';
+const REF = 'Pending verification against WHO / Sindh guidance';
 
 const RULES = {
   bleeding: { level: 'urgent', reason: 'Vaginal bleeding recorded', action: URGENT_ACTION },
