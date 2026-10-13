@@ -13,7 +13,7 @@ A lightweight web app that helps a community health worker (CHW) record a matern
 - **Solution in one line:** a CHW records a visit offline, rules flag danger signs with reasons, and a printable referral summary plus a facility directory support the referral.
 
 ## Features
-- **Dashboard:** demo patients, pending reviews, urgent flags, records awaiting sync, Online/Offline indicator.
+- **Dashboard:** a welcoming mother-and-baby hero, clear three-step referral path, patient/review counts, and Online/Offline indicator.
 - **Advanced offline workflow:** unfinished visit forms autosave on the device; search/filter saved visits; export a JSON backup locally. Offline guidance makes no model requests.
 - **Sample data button:** loads three fictional visits so the dashboard can be demoed quickly.
 - **New visit form:** patient ID, age, weeks pregnant, visit date, CHW ID, symptoms, notes. Saved locally on the device.
@@ -34,6 +34,7 @@ HTML, CSS and JavaScript frontend with a small FastAPI backend for the optional 
 .
 ├── main.py
 ├── requirements.txt
+├── .env.example
 ├── model/
 │   ├── README.md
 │   └── assistant_instructions.txt
@@ -63,16 +64,16 @@ py -3 -m venv .venv
 
 The app opens at `http://localhost:8000`. The service worker only registers on `https://` or `localhost`; load the app once while connected so its shell is available offline. The first load cannot happen offline unless the project files are already on the device.
 
-To enable online chat, revoke any key previously pasted into a chat or committed anywhere, create a fresh Groq key, and enter it as a server environment variable in PowerShell before starting `main.py`:
+To enable online chat, revoke any key previously pasted into a chat or committed anywhere, create a **new** Groq key, and store it only in a local `.env` file:
 
 ```powershell
-$secureKey = Read-Host -Prompt "Enter your new Groq API key" -AsSecureString
-$credential = New-Object System.Net.NetworkCredential -ArgumentList '', $secureKey
-$env:GROQ_API_KEY = $credential.Password
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+notepad .env
+# In Notepad set GROQ_API_KEY=your-new-key, save the file, then close the running server.
 .\.venv\Scripts\python.exe main.py
 ```
 
-The key stays on the server and is never included in browser code. Optional `GROQ_MODEL`, `HOST` and `PORT` environment variables select the model and bind address. If no key is configured, Online AI mode explains that chat is unavailable; Offline guidance still works without calling the model.
+Install updated dependencies with `.\.venv\Scripts\python.exe -m pip install -r requirements.txt` if this is an existing setup. The server reads `.env` at startup; restart it after changing the key. `.env` is ignored by Git. Never paste keys into source code, browser files, screenshots, or chat. Optional `GROQ_MODEL`, `HOST` and `PORT` environment variables select the model and bind address. If no key is configured, Online AI mode explains that chat is unavailable; Offline guidance still works without calling the model.
 
 ## Deploy (GitHub Pages) and install on Android
 Deploy `main.py` to a host that supports Python/FastAPI and HTTPS, with `GROQ_API_KEY` set as a server-side secret. GitHub Pages can host the static/offline app but cannot run this API; deploy the FastAPI app for the combined Online AI and Offline guidance modes. On Android, open the HTTPS app URL in Chrome and load it once while connected, then use **Install app** / **Add to Home screen**. It will keep local guidance available offline.
@@ -87,6 +88,7 @@ Deploy `main.py` to a host that supports Python/FastAPI and HTTPS, with `GROQ_AP
 - Sindhi and Urdu text is bundled in the app, but health terminology and translations must be reviewed by native speakers and qualified local clinicians before real use.
 - `localStorage` is **not encrypted**. Real patient data would need encryption, access control, consent and a retention policy.
 - Visit backups are unencrypted JSON downloads. Store them only on trusted devices and handle them as sensitive information.
+- The dashboard's mother-and-baby image is a locally cached Unsplash photo by [Kelly Sikkema](https://unsplash.com/photos/mother-carrying-baby-Z4GKcFAGck4), used under the [Unsplash License](https://unsplash.com/license). It is decorative, not medical guidance.
 - Sample facilities are fictional.
 - Visit records are not synced to a backend: the `synced` flag is a placeholder. The API only proxies explicitly submitted chat messages and applies a basic per-IP request limit; deploy behind authentication and usage quotas before public use.
 - AI replies can be inaccurate and are not validated clinical guidance. Do not share names, contact details or identifying patient information in chat.
@@ -99,10 +101,10 @@ Deploy `main.py` to a host that supports Python/FastAPI and HTTPS, with `GROQ_AP
 
 ## AI and open-source disclosure
 - **AI tools:** Claude (Anthropic) was used to plan the architecture and to generate the initial HTML, CSS and JavaScript. _[Team: edit this to describe what you reviewed, changed or wrote yourselves.]_
-- **AI models or AI APIs inside the app:** optional Groq chat is available through the FastAPI server when configured. Deterministic warnings and referral summaries remain local; only text the user submits to chat is sent to Groq.
+- **AI models or AI APIs inside the app:** optional Groq chat is available through the FastAPI server when configured. Deterministic warnings and referral summaries remain local; submitting a question sends the current chat conversation to Groq.
 - **Open-source libraries:** FastAPI, Uvicorn and the Groq Python SDK on the server; browser code uses built-in browser features.
 - **External APIs:** Groq receives only chat messages explicitly submitted by the user; the optional "Directions" link opens Google Maps only when a facility has coordinates.
-- **Secrets:** do not put API keys in browser files or commit them. Keep the Groq key in the server's `GROQ_API_KEY` environment variable. Revoke any key shared in a chat or other public location.
+- **Secrets:** do not put API keys in browser files or commit them. Keep the Groq key in the ignored server-side `.env` file or environment. Revoke any key shared in a chat or other public location.
 
 ## Roadmap
 Authenticated visit sync, professional review, native-speaker/clinical review of all translations, and optional local AI for installations that need chat without internet. The current Groq chat needs internet; local deterministic guidance remains the offline fallback. Add deployment-level authentication and per-user quotas before exposing the chat server publicly.

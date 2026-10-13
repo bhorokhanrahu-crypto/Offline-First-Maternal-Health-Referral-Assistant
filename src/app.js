@@ -149,7 +149,18 @@ function renderDashboard(m) {
   const unsynced = visits.filter(function (v) { return !v.synced; });
   const stats = [['demo_patients', patients.length], ['pending_review', pending.length],
                  ['urgent_to_review', urgent.length], ['awaiting_sync', unsynced.length]];
-  let html = '<div class="stats">' + stats.map(function (s) {
+  let html = '<section class="welcome-hero"><div class="hero-copy">' +
+    '<span class="eyebrow">' + esc(t('hero_eyebrow')) + '</span>' +
+    '<h2>' + esc(t('hero_title')) + '</h2><p>' + esc(t('hero_subtitle')) + '</p>' +
+    '<div class="hero-actions"><button class="primary" id="hero-add">' + esc(t('hero_start_visit')) + '</button>' +
+    '<button class="hero-secondary" id="hero-facilities">' + esc(t('hero_find_care')) + '</button></div></div>' +
+    '<figure class="hero-image"><img src="mother-baby.jpg" alt="' + esc(t('hero_photo_alt')) + '" fetchpriority="high">' +
+    '<figcaption>' + esc(t('photo_credit')) + '</figcaption></figure></section>' +
+    '<section class="workflow-section" aria-labelledby="workflow-title"><h2 id="workflow-title">' + esc(t('workflow_title')) + '</h2>' +
+    '<div class="workflow-grid"><article class="workflow-card"><span aria-hidden="true">01</span><h3>' + esc(t('workflow_record')) + '</h3></article>' +
+    '<article class="workflow-card"><span aria-hidden="true">02</span><h3>' + esc(t('workflow_review')) + '</h3></article>' +
+    '<article class="workflow-card"><span aria-hidden="true">03</span><h3>' + esc(t('workflow_refer')) + '</h3></article></div></section>' +
+    '<div class="stats">' + stats.map(function (s) {
     return '<div class="card stat-card"><b>' + s[1] + '</b><span>' + esc(t(s[0])) + '</span></div>';
   }).join('') + '</div><h2>' + esc(t('visits')) + '</h2>';
   if (!visits.length) html += '<div class="empty-state"><p>' + esc(t('no_visits')) + '</p><button class="primary" id="empty-add">' + esc(t('add_visit')) + '</button></div>';
@@ -158,6 +169,8 @@ function renderDashboard(m) {
     '<option value="pending">' + esc(t('needs_review')) + '</option><option value="reviewed">' + esc(t('reviewed_only')) + '</option></select></label></div><div id="visit-list"></div>';
   html += '<div class="actions no-print"><button id="demo">' + esc(t('load_samples')) + '</button><button id="export" class="quiet-button">' + esc(t('export_backup')) + '</button><button id="clear" class="quiet-button">' + esc(t('clear_demo')) + '</button></div>';
   m.innerHTML = html;
+  $('#hero-add').onclick = function () { go('register'); };
+  $('#hero-facilities').onclick = function () { go('facilities'); };
   if ($('#empty-add')) $('#empty-add').onclick = function () { go('register'); };
   function drawVisits() {
     const query = $('#visit-search').value.trim().toLocaleLowerCase();

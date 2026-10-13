@@ -1,5 +1,5 @@
-const CACHE = 'matref-v13';
-const FILES = ['./', './index.html', './style.css', './app.js', './i18n.js', './rules.js', './facilities.js', './manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE = 'matref-v15';
+const FILES = ['./', './index.html', './style.css', './app.js', './i18n.js', './rules.js', './facilities.js', './manifest.json', './icon-192.png', './icon-512.png', './mother-baby.jpg'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) {
     return Promise.all(FILES.map(function (file) {

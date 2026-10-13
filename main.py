@@ -7,12 +7,14 @@ from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
+from dotenv import load_dotenv
 from groq import APIConnectionError, APIStatusError, APITimeoutError, AsyncGroq
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 ROOT = Path(__file__).resolve().parent
 SRC = ROOT / "src"
+load_dotenv(ROOT / ".env", override=False)
 MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
 RATE_WINDOW_SECONDS = 10 * 60
 RATE_LIMIT = 20
