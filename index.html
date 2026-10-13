@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f766e">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+  <title>Maternal Referral Assistant</title>
+</head>
+<body>
+  <div class="app">
+    <header class="no-print">
+      <h1>Maternal Referral Assistant</h1>
+      <span id="net" class="pill ok">Online</span>
+    </header>
+    <nav class="no-print">
+      <button data-view="dashboard">Dashboard</button>
+      <button data-view="register">New visit</button>
+      <button data-view="facilities">Facilities</button>
+    </nav>
+    <p class="demo no-print">DEMO: fictional data only. Warning rules are unverified placeholders.</p>
+    <main id="main"></main>
+  </div>
+  <script src="rules.js"></script>
+  <script src="facilities.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

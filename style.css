@@ -1,0 +1,27 @@
+:root { --teal: #0f766e; --red: #b91c1c; --amber: #b45309; font-family: system-ui, sans-serif; }
+body { margin: 0; background: #f4f6f6; color: #111; }
+.app { max-width: 720px; margin: 0 auto; padding: 12px; }
+header { display: flex; justify-content: space-between; align-items: center; }
+h1 { font-size: 1.2rem; color: var(--teal); margin: 8px 0; }
+nav { display: flex; gap: 6px; margin-bottom: 8px; }
+button { padding: 10px 14px; border: 1px solid #ccc; border-radius: 8px; background: #fff; font-size: 1rem; cursor: pointer; }
+button.active, button.primary { background: var(--teal); color: #fff; border-color: var(--teal); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.card { background: #fff; border-radius: 10px; padding: 12px; margin: 8px 0; box-shadow: 0 1px 2px #0002; }
+.row { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.stats .card b { display: block; font-size: 1.6rem; color: var(--teal); }
+.pill { font-size: .75rem; padding: 2px 8px; border-radius: 99px; background: #e5e7eb; }
+.pill.ok { background: #d1fae5; color: #065f46; }
+.pill.off { background: #fee2e2; color: var(--red); }
+.pill.warn { background: #fef3c7; color: var(--amber); }
+.alert { background: var(--red); color: #fff; padding: 14px; border-radius: 10px; font-weight: 700; margin: 8px 0; }
+.flag.urgent { border-left: 6px solid var(--red); }
+.flag.review { border-left: 6px solid var(--amber); }
+.demo { font-size: .8rem; background: #fef9c3; padding: 6px 10px; border-radius: 8px; }
+.err { color: var(--red); }
+label { display: block; margin: 10px 0; font-weight: 600; }
+label.check { font-weight: 400; margin: 6px 0; }
+input:not([type=checkbox]), textarea { display: block; width: 100%; box-sizing: border-box; padding: 10px; margin-top: 4px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; }
+fieldset { border: 1px solid #ddd; border-radius: 8px; }
+@media print { .no-print { display: none !important; } body { background: #fff; } }
